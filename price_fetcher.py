@@ -12,7 +12,7 @@ It also caches the fetched data locally to minimize API calls.
 """
 
 # Constants
-CONFIG_DIR = Path.home() / '.price_fetcher'
+CONFIG_DIR = Path.home() / '.crypto_prices'
 CONFIG_FILE = CONFIG_DIR / 'config.json'
 CRYPTO_DATA_FILE = CONFIG_DIR / 'crypto_data.json'
 
@@ -55,7 +55,7 @@ def load_api_key() -> str | None:
             print(f"Error saving config file: {e}")
     return api_key
 
-def fetch_crypto_data(limit: int = 50, convert: str = 'USD', refresh: bool = False):
+def fetch_crypto_data(limit: int = 5000, convert: str = 'USD', refresh: bool = False):
 
     """Fetch cryptocurrency data from CoinMarketCap API or local cache."""
 
@@ -114,7 +114,7 @@ def fetch_crypto_data(limit: int = 50, convert: str = 'USD', refresh: bool = Fal
 
 # Example usage
 if __name__ == "__main__":
-    data = fetch_crypto_data(limit=10, refresh=True)
+    data = fetch_crypto_data(limit=10, refresh=False)
     if data:
         for crypto in data.get('data', []):
             name = crypto.get('name')
