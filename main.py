@@ -1,6 +1,12 @@
 from price_fetcher import CONFIG_DIR, CRYPTO_DATA_FILE
+from price_fetcher import fetch_crypto_data
 import json
+import os
 
+
+def clear_console():
+    """Clear the console for better readability."""
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
 def price_show(crypto_name: str):
@@ -40,22 +46,45 @@ def price_show(crypto_name: str):
         return
 
 if __name__ == "__main__":
+    while True:
+        clear_console()
+        print("=" * 30)
+        print("This module provides the price_show function to display cryptocurrency prices.")
+        print("Menu:","=" * 30)
+        print("1. Fetch and cache cryptocurrency data")
+        print("2. Show price of a specific cryptocurrency")
+        print("3. Exit")
+        choice = input("Enter your choice (1-3): ").strip()
 
-    print("\nThis module provides the price_show function to display cryptocurrency prices.")
-    print("Menu:","=" * 30)
-    print("1. Show price of a specific cryptocurrency")
-    print("2. Exit")
-    choice = input("Enter your choice (1-2): ").strip()
+        if choice == '1':
+            print("Fetching cryptocurrency data...")
+            data = fetch_crypto_data()
+            if data:
+                print("Data fetched and cached successfully.")
+                # Display top 5 cryptocurrencies by market cap
+                print("\nTop 5 Cryptocurrencies by Market Cap:")
+                sorted_data = sorted(data.get('data', []), key=lambda x: x.get('quote', {}).get('USD', {}).get('market_cap', 0), reverse=True)
+                for crypto in sorted_data[:5]:
+                    name = crypto.get('name')
+                    symbol = crypto.get('symbol')
+                    price = crypto.get('quote', {}).get('USD', {}).get('price')
+                    market_cap = crypto.get('quote', {}).get('USD', {}).get('market_cap')
+                    print(f"{name} ({symbol}): Price: ${price:,.2f}, Market Cap: ${market_cap:,.2f}")
+                input("\nPress Enter to back to the menu...")
+            else:
+                input("Failed to fetch data. Press Enter to back to the menu...")
 
-    match choice:
-        case '1':
+        elif choice == '2':
             crypto_name = input("Enter the cryptocurrency name or symbol: ").strip()
             if crypto_name:
                 price_show(crypto_name)
+                input("\nPress Enter to back to the menu...")
             else:
                 print("Invalid input. Please enter a valid cryptocurrency name or symbol.")
-        case '2':
+                input("Press Enter to back to the menu...")
+        elif choice == '3':
             print("Exiting the program.")
             exit()
-        case _:
-            print("Invalid choice. Please enter 1 or 2.")
+        else:
+            print("Invalid choice. Please enter 1, 2, or 3.")
+            input("Press Enter to back to the menu...")
