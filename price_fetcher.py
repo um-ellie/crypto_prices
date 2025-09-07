@@ -96,6 +96,11 @@ def is_cache_valid(file_path: Path, expiry_minutes: int) -> bool:
 def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
     """Fetch cryptocurrency data from CoinMarketCap API or local cache."""
 
+    print("\nFetching cryptocurrency data...")
+    print("Note: You can get a free API key from https://coinmarketcap.com/api/")
+    print("If you have already set an environment variable 'CMC_API_KEY', it will be used.\n")
+    print("Fetching data may take a few seconds...\n")
+    print("=" * 30)
     config = crypto_prices_config()
     api_key = os.getenv('CMC_API_KEY') or config.get("api_key")
     expiry_minutes = config.get("expiry_minute", DEFAULT_CACHE_EXPIRY_MINUTES)
@@ -155,3 +160,12 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
 # Example usage
 if __name__ == "__main__":
     data = fetch_crypto_data()
+    if data:
+        print(f"Fetched {len(data.get('data', []))} cryptocurrencies.\n")
+        
+        # Print the first 5 cryptocurrencies
+        print("=" * 30)
+        print("Top 5 Cryptocurrencies:")
+        for crypto in data.get('data', [])[:5]:
+            print(f"{crypto['name']} ({crypto['symbol']}): ${crypto['quote']['USD']['price']:.2f}")
+        print("=" * 30)
