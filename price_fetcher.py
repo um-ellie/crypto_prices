@@ -3,6 +3,7 @@ import json
 import requests
 from pathlib import Path
 from requests.exceptions import RequestException, HTTPError, Timeout
+from datetime import datetime, timedelta
 
 """
 This script fetches cryptocurrency prices from the CoinMarketCap API.
@@ -16,65 +17,100 @@ CONFIG_DIR = Path.home() / '.crypto_prices'
 CONFIG_FILE = CONFIG_DIR / 'config.json'
 CRYPTO_DATA_FILE = CONFIG_DIR / 'crypto_data.json'
 
-def load_api_key() -> str | None:
 
-    """Load the API key from environment variable, config file, or prompt the user."""
+DEFAULT_CACHE_EXPIRY_MINUTES = 60  # minutes (1 hour)
 
-    # Check environment variable
-    api_key = os.getenv('CMC_API_KEY')
-    if api_key:
-        return api_key.strip()
-    
-    # Check config file
+def ask_until_non_empty(prompt: str) -> str:
+    """Prompt the user until a non-empty input is received."""
+    response = input(prompt).strip()
+    while not response:
+        response = input(f"Input cannot be empty. {prompt}").strip()
+    return response
+
+
+def crypto_prices_config() -> dict:
+
+    """Load configuration from file or environment variables."""
+
     if CONFIG_FILE.exists():
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as file:
                 config = json.load(file)
-                api_key = config.get("api_key")
-                if api_key:
-                    return api_key.strip()
+                return config
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error reading config file: {e}")
 
-    # Prompt user for API key
-    api_key = input("Enter your CoinMarketCap API key: ").strip()
-    if not api_key:
-        print("API key cannot be empty.")
-        return None
+    api_key = ask_until_non_empty("Enter your CoinMarketCap API key: ")
+
+    try:
+        expiry_minute = int(
+            input(f"Enter cache expiry time in minutes (default {DEFAULT_CACHE_EXPIRY_MINUTES}): ").strip()
+            or DEFAULT_CACHE_EXPIRY_MINUTES
+        )
+        if expiry_minute <= 0:
+            print("Expiry time must be positive. Using default.")
+            expiry_minute = DEFAULT_CACHE_EXPIRY_MINUTES
+    except ValueError:
+        print(f"Invalid input. Using default cache expiry time: {DEFAULT_CACHE_EXPIRY_MINUTES} minutes.")
+        expiry_minute = DEFAULT_CACHE_EXPIRY_MINUTES
+
+
+    config = {
+        "api_key": api_key,
+        "expiry_minute": expiry_minute
+    }
+
+    # Save config to file
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as file:
+            json.dump(config, file, indent=4)
+            print(f"Configuration saved successfully to {CONFIG_FILE}.")
+    except IOError as e:
+        print(f"Error saving config file: {e}")
+
+    return config
+
+
+def is_cache_valid(file_path: Path, expiry_minutes: int) -> bool:
+    """Check if the cache file exists and is still valid based on expiry time."""
+
+    if not file_path.exists():
+        return False
     
-    # Save API key to config file
-    save = input("Would you like to save this API key for future use? (y/n): ").strip().lower()
-    if save == 'y':
-        try:
-            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-            with open(CONFIG_FILE, 'w', encoding='utf-8') as file:
-                json.dump({"api_key": api_key}, file, indent=4)
-                print("API key saved successfully.")
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            timestamp = data.get('timestamp')
+            if not timestamp:
+                return False
+            cache_time = datetime.fromtimestamp(timestamp)
+            return datetime.now() - cache_time < timedelta(minutes=expiry_minutes)
+    except (json.JSONDecodeError, IOError, ValueError) as e:
+        print(f"Error reading cache file: {e}")
+        return False
 
-        except (IOError, TypeError) as e:
-            print(f"Error saving config file: {e}")
-    return api_key
 
-def fetch_crypto_data(limit: int = 5000, convert: str = 'USD', refresh: bool = False):
 
+
+def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
     """Fetch cryptocurrency data from CoinMarketCap API or local cache."""
 
-    api_key = load_api_key()
-    if not api_key:
-        print("No API key available. Exiting.")
-        return None
-    
+    config = crypto_prices_config()
+    api_key = os.getenv('CMC_API_KEY') or config.get("api_key")
+    expiry_minutes = config.get("expiry_minute", DEFAULT_CACHE_EXPIRY_MINUTES)
 
-    # Check if data file exists and refresh is not requested
-    if CRYPTO_DATA_FILE.exists() and not refresh:
+    # Check if cache is valid
+    if is_cache_valid(CRYPTO_DATA_FILE, expiry_minutes):
         try:
             with open(CRYPTO_DATA_FILE, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-                print("Loaded data from local cache.")
+                print(f"Loaded data from cache valid for {expiry_minutes} minutes.")
                 return data
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Error reading local data file: {e}")
+            print(f"Error reading cache file: {e}")
 
+    # Fetch data from API
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
     headers = {
         'Accepts': 'application/json',
@@ -90,6 +126,10 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD', refresh: bool = F
         response = requests.get(url, headers=headers, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
+
+        # Add timestamp to data
+        data['timestamp'] = datetime.now().timestamp()
+
 
         # Save data to local file
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -114,10 +154,4 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD', refresh: bool = F
 
 # Example usage
 if __name__ == "__main__":
-    data = fetch_crypto_data(limit=10, refresh=False)
-    if data:
-        for crypto in data.get('data', []):
-            name = crypto.get('name')
-            symbol = crypto.get('symbol')
-            price = crypto.get('quote', {}).get('USD', {}).get('price')
-            print(f"{name} ({symbol}): ${price:.2f}")
+    data = fetch_crypto_data()
