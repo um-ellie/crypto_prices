@@ -1,35 +1,51 @@
-# crypto_prices
+# Cryptocurrency Price Viewer
 
-A simple Python script to fetch and cache cryptocurrency prices from the CoinMarketCap API.
-
-## Features
-
-- Retrieves latest cryptocurrency data using the CoinMarketCap API.
-- Caches results locally to minimize API calls.
-- Handles API key configuration via environment variable or user prompt.
-
-## Usage
-
-1. **Install dependencies:**
-    ```bash
-    pip install requests
-    ```
-
-2. **Run the script:**
-    ```bash
-    python price_fetcher.py
-    ```
-
-3. **API Key Setup:**
-    - The script will prompt for your CoinMarketCap API key on first run.
-    - You can also set your API key as an environment variable:
-        ```bash
-        export CMC_API_KEY=your_api_key_here
-        ```
+This project is a simple command-line application that allows users to fetch and display cryptocurrency prices. It retrieves data from the CoinMarketCap API and caches it locally for efficient access.
 
 ## Files
 
-- `price_fetcher.py`: Main script for fetching and caching crypto prices.
+- **main.py**: The main application script that provides an interactive menu for fetching and displaying cryptocurrency prices.
+- **price_fetcher.py**: Contains functions for fetching cryptocurrency data from the CoinMarketCap API, managing API keys, caching, and data validation.
+
+## Setup Instructions
+
+1. Clone the repository:
+   ```
+   git clone <repository-url>
+   cd crypto_prices
+   ```
+
+2. Install the required packages:
+   ```
+   pip install requests
+   ```
+
+3. Create a configuration directory:
+   ```
+   mkdir -p ~/.crypto_prices
+   ```
+
+4. Run the application:
+   ```
+   python main.py
+   ```
+
+5. When prompted, enter your CoinMarketCap API key. You can also set the API key in the environment variable `CMC_API_KEY` to avoid prompts.
+
+## Usage
+
+- **Fetch and cache cryptocurrency data**: Select option 1 from the menu to fetch the latest cryptocurrency prices and cache the data locally.
+- **Show price of a specific cryptocurrency**: Select option 2 to enter the name or symbol of a cryptocurrency and view its current price and other details.
+- **Exit**: Select option 3 to exit the application.
+
+## Configuration
+
+The application will prompt for the API key and cache expiry time on the first run. The configuration will be saved in `~/.crypto_prices/config.json`. You can modify this file directly if needed.
+
+## Notes
+
+- Ensure you have a valid CoinMarketCap API key to fetch data.
+- The cached data will be stored in `~/.crypto_prices/crypto_data.json` and will be used for subsequent requests until it expires based on the configured expiry time.
 
 ## License
 
