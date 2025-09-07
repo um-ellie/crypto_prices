@@ -5,12 +5,6 @@ from pathlib import Path
 from requests.exceptions import RequestException, HTTPError, Timeout
 from datetime import datetime, timedelta
 
-"""
-This script fetches cryptocurrency prices from the CoinMarketCap API.
-It handles API key management, including loading from environment variables,
-a config file, or prompting the user.
-It also caches the fetched data locally to minimize API calls.
-"""
 
 # Constants
 CONFIG_DIR = Path.home() / '.crypto_prices'
@@ -60,7 +54,7 @@ def crypto_prices_config() -> dict:
         "expiry_minute": expiry_minute
     }
 
-    # Save config to file
+
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(CONFIG_FILE, 'w', encoding='utf-8') as file:
@@ -99,7 +93,6 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
     print("""\nFetching cryptocurrency data...
     Note: You can get a free API key from https://coinmarketcap.com/api/.
     Note: You can set your API key in the CMC_API_KEY environment variable to avoid prompts.
-    If you have already set an environment variable 'CMC_API_KEY', it will be used.
     """)
     print("\nFetching data may take a few seconds...")
     print("=" * 50)
@@ -108,7 +101,7 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
     api_key = os.getenv('CMC_API_KEY') or config.get("api_key")
     expiry_minutes = config.get("expiry_minute", DEFAULT_CACHE_EXPIRY_MINUTES)
 
-    # Check if cache is valid
+
     if is_cache_valid(CRYPTO_DATA_FILE, expiry_minutes):
         try:
             with open(CRYPTO_DATA_FILE, 'r', encoding='utf-8') as file:
@@ -118,7 +111,7 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error reading cache file: {e}")
 
-    # Fetch data from API
+
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
     headers = {
         'Accepts': 'application/json',
@@ -135,11 +128,11 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
         response.raise_for_status()
         data = response.json()
 
-        # Add timestamp to data
+
         data['timestamp'] = datetime.now().timestamp()
 
 
-        # Save data to local file
+
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         with open(CRYPTO_DATA_FILE, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4)
@@ -160,7 +153,7 @@ def fetch_crypto_data(limit: int = 5000, convert: str = 'USD') -> dict | None:
     return None
 
 
-# Example usage
+
 if __name__ == "__main__":
     data = fetch_crypto_data()
     if data:

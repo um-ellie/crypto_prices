@@ -5,7 +5,7 @@ import os
 import sys
 
 
-# Centralized messages
+
 MESSAGES = {
     "menu": {
         "title": "Cryptocurrency Price Viewer",
